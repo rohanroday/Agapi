@@ -1,0 +1,9 @@
+node_modules/
+dist/
+# raw generations, review frames and the skill never ship
+_raw/
+_review/
+10k-websites/
+10k-websites-skill.zip
+.claude/
+.DS_Store
