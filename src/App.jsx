@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { ScrollTrigger, useReducedMotion, useSmoothScroll } from './lib/motion.jsx';
+import Splash from './components/layout/Splash.jsx';
 import Nav from './components/layout/Nav.jsx';
 import Footer from './components/layout/Footer.jsx';
 import ShopBar from './components/layout/ShopBar.jsx';
@@ -46,6 +47,7 @@ export default function App() {
 
   return (
     <>
+      <Splash />
       <a className="skip" href="#main">Skip to content</a>
       <div className="env" aria-hidden="true"><div className="env-glow" /></div>
       {petals && <Suspense fallback={null}><PetalField /></Suspense>}

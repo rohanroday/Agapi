@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="splash-lock">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,11 +12,59 @@
 <meta property="og:description" content="Handmade, vegan skincare from the mountains of Sikkim.">
 <meta property="og:image" content="https://SITE-URL/assets/img/hero-ending.jpg">
 <meta property="og:url" content="https://SITE-URL/">
+<script>
+  // The splash plays once per visit and never for reduced motion; decided before first paint so it never flashes.
+  (function () {
+    var skip = false;
+    try { skip = sessionStorage.getItem('agapi-splash') === '1'; } catch (e) {}
+    if (skip || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.className = 'no-splash';
+    }
+  })();
+</script>
+<style>
+  /* Splash critical CSS: inline so it paints before the app bundle arrives */
+  .splash{position:fixed;inset:0;z-index:100;color:#FBF4EA;pointer-events:auto}
+  .no-splash .splash{display:none}
+  .splash-lock,.splash-lock body{overflow:hidden}
+  .sp-panel{position:absolute;inset:0;background:#21352C;will-change:transform}
+  .sp-panel::before{content:"";position:absolute;inset:0;background:radial-gradient(50% 42% at 50% 46%,rgba(226,165,44,.16),transparent 70%),radial-gradient(60% 50% at 80% 90%,rgba(126,152,147,.14),transparent 70%)}
+  .sp-edge{position:absolute;left:0;top:calc(100% - 1px);width:100%;height:clamp(60px,9vw,120px);fill:#21352C}
+  .sp-center{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:clamp(22px,4vh,36px)}
+  .sp-drop{width:clamp(46px,6vw,64px);height:auto;overflow:visible;transform-origin:50% 0}
+  .sp-drop .o{fill:none;stroke:#E2A52C;stroke-width:1.6;opacity:.85}
+  .sp-drop .f{fill:url(#spGold)}
+  .sp-logo{width:clamp(150px,18vw,220px);height:auto;display:block}
+  .sp-ripple{position:absolute;left:50%;top:50%;width:120px;height:34px;margin:-17px 0 0 -60px;border:1.5px solid #E2A52C;border-radius:50%;opacity:0}
+  .sp-foot{position:absolute;left:clamp(16px,4vw,56px);right:clamp(16px,4vw,56px);bottom:calc(env(safe-area-inset-bottom,0px) + clamp(20px,4vh,40px));display:flex;justify-content:space-between;align-items:baseline;font:400 12px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(251,244,234,.72)}
+  .sp-count{font:400 clamp(28px,4vw,44px)/1 "Fraunces",Georgia,serif;letter-spacing:0;color:#FBF4EA;font-variant-numeric:tabular-nums}
+  .sp-count::after{content:"%";font-size:.45em;margin-left:.15em;opacity:.6;vertical-align:top}
+</style>
+<noscript><style>.splash{display:none}.splash-lock,.splash-lock body{overflow:auto}</style></noscript>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Figtree:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
 </head>
 <body>
+<!-- Splash: a golden drop fills as the site loads, falls into a ripple, and the mountain lifts away -->
+<div id="splash" class="splash" aria-hidden="true">
+  <div class="sp-panel">
+    <svg class="sp-edge" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0 0H1200V44L1130 72 1070 56 1000 88 930 64 860 96 800 70 740 100 690 74 640 106 600 120 560 100 520 112 470 84 410 104 360 76 290 96 230 68 150 88 90 64 0 80Z"/></svg>
+    <div class="sp-center">
+      <svg class="sp-drop" viewBox="0 0 60 84">
+        <defs>
+          <linearGradient id="spGold" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#F3C969"/><stop offset=".55" stop-color="#E2A52C"/><stop offset="1" stop-color="#B9781C"/></linearGradient>
+          <clipPath id="spLevel"><rect class="sp-level" x="0" y="84" width="60" height="84"/></clipPath>
+        </defs>
+        <path class="f" clip-path="url(#spLevel)" d="M30 3C30 3 5 37 5 55a25 25 0 0 0 50 0C55 37 30 3 30 3Z"/>
+        <path class="o" d="M30 3C30 3 5 37 5 55a25 25 0 0 0 50 0C55 37 30 3 30 3Z"/>
+      </svg>
+      <img class="sp-logo" src="/assets/img/logo-light.png" alt="" width="480" height="228">
+      <div class="sp-ripple"></div>
+    </div>
+    <div class="sp-foot"><span>From the mountains of Sikkim</span><span class="sp-count">0</span></div>
+  </div>
+</div>
 <div id="root"></div>
 <script type="module" src="/src/main.jsx"></script>
 </body>

@@ -39,6 +39,12 @@ export const useReducedMotion = () => useMedia(RM_QUERY);
 export const usePortrait = () => useMedia(PORTRAIT_QUERY);
 export const usePlayMode = () => useMedia(PLAY_QUERY);
 
+/* ---------- Splash: resolves when the intro lifts away (immediately when it is skipped) ---------- */
+let resolveSplashDone;
+export const splashDone = new Promise((r) => (resolveSplashDone = r));
+export const resolveSplash = () => resolveSplashDone();
+export const splashLocked = () => document.documentElement.classList.contains('splash-lock');
+
 /* ---------- Lenis smooth scroll, driven by GSAP's ticker so both share one clock ---------- */
 let lenis = null;
 export const getLenis = () => lenis;
@@ -59,6 +65,7 @@ export function useSmoothScroll(enabled) {
       syncTouch: false, // phones keep their native momentum, which already feels right
       anchors: { offset: -72 },
     });
+    if (splashLocked()) lenis.stop(); // the splash releases it
     lenis.on('scroll', (e) => {
       ScrollTrigger.update();
       scrollListeners.forEach((fn) => fn(e));

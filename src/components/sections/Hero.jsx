@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { gsap, ScrollTrigger, clamp, smoothstep, rng, usePortrait, usePlayMode } from '../../lib/motion.jsx';
+import { gsap, ScrollTrigger, clamp, smoothstep, rng, usePortrait, usePlayMode, splashDone } from '../../lib/motion.jsx';
 import { SHOP } from '../../data/links.js';
 
 /* Two modes, one choreography:
@@ -12,6 +12,12 @@ const CLIP = {
   portrait: { src: '/assets/video/hero-m.mp4', poster: '/assets/img/hero-poster-m.jpg', end: '/assets/img/hero-ending-m.jpg' },
   landscape: { src: '/assets/video/hero-l.mp4', poster: '/assets/img/hero-poster-l.jpg', end: '/assets/img/hero-ending.jpg' },
 };
+/* tells the splash how far the hero has loaded (0..1); kept on window in case the splash listens late */
+function reportProgress(f) {
+  window.__agapiHero = Math.max(window.__agapiHero || 0, f);
+  dispatchEvent(new CustomEvent('agapi:hero-progress', { detail: f }));
+}
+
 const PLAYBACK_RATE = 0.8; // 7.5s loop plays in ~9.4s, about two seconds per caption
 
 /* Band map for the Flow clip (8s): fall 0-5s, water at ~5.3s, splash ~6.6s, frozen crown at 8s */
@@ -136,13 +142,14 @@ export default function Hero({ scrub }) {
       img.onload = () => {
         if (!alive) return;
         imgs[i] = img; ready[i] = 1; loaded++;
+        reportProgress(Math.min(1, loaded / 24));
         ring.style.setProperty('--ld', Math.round(126 * (1 - loaded / set.count)));
         if (!firstShown) { firstShown = true; stage.classList.add('frames-ready'); }
         if (loaded === set.count) stage.classList.add('frames-done');
         drawn = -1; render();
         loadNext();
       };
-      img.onerror = () => { if (!alive) return; loaded++; loadNext(); };
+      img.onerror = () => { if (!alive) return; loaded++; reportProgress(Math.min(1, loaded / 24)); loadNext(); };
       img.src = frameUrl(i);
     }
     for (let c = 0; c < 6; c++) loadNext(); // six parallel lanes
@@ -154,7 +161,11 @@ export default function Hero({ scrub }) {
         scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom bottom', scrub: 0.6 },
         onUpdate: render,
       });
-      gsap.to(st, { loadK: 1, duration: 1.4, delay: 0.2, ease: 'power3.out', onUpdate: render });
+    });
+
+    let ramp;
+    splashDone.then(() => {
+      if (alive) ramp = gsap.to(st, { loadK: 1, duration: 1.4, delay: 0.1, ease: 'power3.out', onUpdate: render });
     });
 
     size();
@@ -164,6 +175,7 @@ export default function Hero({ scrub }) {
 
     return () => {
       alive = false;
+      ramp?.kill();
       gctx.revert();
       ro.disconnect();
       stage.classList.remove('frames-ready', 'frames-done');
@@ -177,7 +189,7 @@ export default function Hero({ scrub }) {
     const clip = portrait ? CLIP.portrait : CLIP.landscape;
     const st = { p: 0, loadK: 0 };
     const updateCaptions = makeCaptions(stage, bandRefs.current, st);
-    let raf = null, visible = true, settled = false, lastT = 0;
+    let raf = null, visible = true, settled = false, lastT = 0, ready = false, alive = true;
 
     stage.style.setProperty('--end', `url('${clip.end}')`);
     v.poster = clip.poster;
@@ -206,7 +218,7 @@ export default function Hero({ scrub }) {
     };
     const kick = () => { if (raf === null && !settled) raf = requestAnimationFrame(tick); };
     const start = () => {
-      if (!visible) return;
+      if (!visible || !ready) return; // the clip begins as the splash lifts
       v.playbackRate = PLAYBACK_RATE; // some browsers reset it on load
       const pr = v.play();
       // autoplay blocked (iOS Low Power Mode, data saver): rest on the splash with the call to action
@@ -214,6 +226,13 @@ export default function Hero({ scrub }) {
     };
     const onPlaying = () => { stage.classList.remove('clip-blocked'); stage.classList.add('clip-on'); kick(); };
     v.addEventListener('playing', onPlaying);
+    // splash progress: poster first, then enough video to start
+    const posterImg = new Image();
+    posterImg.onload = posterImg.onerror = () => reportProgress(0.6);
+    posterImg.src = clip.poster;
+    const onData = () => reportProgress(1);
+    v.addEventListener('loadeddata', onData);
+    const fallback = setTimeout(() => reportProgress(1), 2500); // iOS may not buffer before play()
 
     // pause while scrolled away, pick up again on return
     const io = new IntersectionObserver((e) => {
@@ -225,13 +244,21 @@ export default function Hero({ scrub }) {
     document.addEventListener('visibilitychange', onVis);
 
     updateCaptions(0);
-    const ramp = gsap.to(st, { loadK: 1, duration: 1.2, delay: 0.15, ease: 'power3.out', onUpdate: () => updateCaptions(st.p) });
-    start();
+    let ramp;
+    splashDone.then(() => {
+      if (!alive) return;
+      ready = true;
+      ramp = gsap.to(st, { loadK: 1, duration: 1.2, delay: 0.1, ease: 'power3.out', onUpdate: () => updateCaptions(st.p) });
+      start();
+    });
     ScrollTrigger.refresh();
 
     return () => {
+      alive = false;
       if (raf !== null) cancelAnimationFrame(raf);
-      ramp.kill();
+      ramp?.kill();
+      clearTimeout(fallback);
+      v.removeEventListener('loadeddata', onData);
       io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       v.removeEventListener('playing', onPlaying);

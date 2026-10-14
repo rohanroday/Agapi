@@ -16,7 +16,7 @@ npm run preview  # serve the build locally
 ## Structure
 
 ```
-index.html                 page shell, meta tags, fonts
+index.html                 page shell, meta tags, fonts, splash markup + its critical CSS
 public/assets/
   frames/d/                hero frames for desktop (192 × 1440px webp, scroll-scrubbed)
   video/                   hero-m.mp4 / hero-l.mp4 (phone and tablet loops), artisans.mp4
@@ -29,7 +29,7 @@ src/
   data/catalog.js          product snapshot from the store's products.json
   data/links.js            store URLs
   components/
-    layout/                Nav (with mobile menu), Footer, ShopBar (phones)
+    layout/                Splash (intro controller), Nav (with mobile menu), Footer, ShopBar (phones)
     sections/              Hero, Origin, Botanicals, Bestsellers, Artisans, Press, Visit, FinalCta, Circle
     ui/                    ProductCard
     effects/               PetalField (Three.js, lazy-loaded)
@@ -40,6 +40,7 @@ Local working files (raw renders, review frames, reference material) live in `_l
 
 ## Notes
 
+- Splash: the markup lives in `index.html` so it paints before the JS bundle. `Splash.jsx` fills the drop with real load progress (fonts + the hero's first frames or poster), then the drop falls into a ripple and the panel lifts away. It plays once per browser session (`sessionStorage` key `agapi-splash`) and never for reduced motion; the hero's video and first caption wait for it (`splashDone` in `motion.jsx`). It always lets go after 5 seconds on slow connections.
 - Desktop: the hero draws a 192-frame sequence on a canvas, scrubbed by scroll over about 2.4 screens.
 - Phones and tablets (`(max-width: 899px), (max-aspect-ratio: 1/1)`): the hero is one screen and the clip loops at 0.8x. Captions run once on the first pass, then the final message and call to action stay while the clip keeps looping. If autoplay is blocked (iOS Low Power Mode) it shows the splash frame and the call to action.
 - Reduced-motion visitors get the still hero.
